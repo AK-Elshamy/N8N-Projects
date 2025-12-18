@@ -1,0 +1,284 @@
+{
+    "name": "First_AI_Agent",
+    "nodes": [
+        {
+            "parameters": {
+                "updates": [
+                    "message"
+                ],
+                "additionalFields": {}
+            },
+            "type": "n8n-nodes-base.telegramTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                -272,
+                0
+            ],
+            "id": "17c161b1-e21a-4b8f-b67a-b412693af198",
+            "name": "GoldCrypto_AgentBot",
+            "webhookId": "01a4a96b-890c-43f2-adfe-0e875f69833c",
+            "credentials": {
+                "telegramApi": {
+                    "id": "FPZ3M5he6gdj6eII",
+                    "name": "Telegram account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.message.text }}",
+                "options": {
+                    "systemMessage": "=Response Channel (Mandatory): You are strictly prohibited from responding with direct text. You MUST use the Telegram tool for EVERY response you send to the user, including greetings, introductions, and general chat.\n\nIntroductory Protocol: If the user sends a greeting (e.g., \"السلام عليكم\", \"Hi\") or asks a non-financial question, you MUST call the Telegram tool and write a full introduction in the message field:\n\n\"أهلاً بك! أنا مساعدك المالي الذكي الخاص بأحمد. أستطيع تزويدك بأسعار الذهب (عيار 21 و24) والعملات الرقمية (Bitcoin, ETH) لحظياً وبالجنيه المصري. كيف يمكنني مساعدتك اليوم؟\"\n\nFinancial Protocol: For market questions, use get_current_time, gold_price_tracker, and crypto_price_tracker. Convert prices to EGP (1 USD = 50 EGP).\n\nTool Mapping: Always put your final answer in the message argument of the Telegram tool.\n\nLanguage: Arabic."
+                }
+            },
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 3,
+            "position": [
+                208,
+                0
+            ],
+            "id": "423c30c3-799d-4da6-9445-09fff4f43569",
+            "name": "AI Agent"
+        },
+        {
+            "parameters": {
+                "model": "openai/gpt-4o-mini",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+            "typeVersion": 1,
+            "position": [
+                -240,
+                384
+            ],
+            "id": "40a31afa-13e0-4ce3-a3c6-443ed905fc5a",
+            "name": "OpenRouter Chat Model",
+            "credentials": {
+                "openRouterApi": {
+                    "id": "wKiTDDsusOXTPQRT",
+                    "name": "OpenRouter account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "sessionIdType": "customKey",
+                "sessionKey": "={{ $json.message.chat.id }}"
+            },
+            "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+            "typeVersion": 1.3,
+            "position": [
+                16,
+                400
+            ],
+            "id": "97826756-593e-4b28-abd7-a3e99739c36d",
+            "name": "Simple Memory"
+        },
+        {
+            "parameters": {
+                "toolDescription": "Use this tool to get the current gold prices. It returns the price per ounce and per gram for different carats (24k, 21k, etc.) in USD. Use this data to answer user questions about gold market status.",
+                "url": "https://www.goldapi.io/api/XAU/USD",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "x-access-token",
+                            "value": "goldapi-1izf6smjbm9v85-io"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequestTool",
+            "typeVersion": 4.3,
+            "position": [
+                304,
+                416
+            ],
+            "id": "ca78d2b5-0020-4ce3-bcfd-8715597b80d8",
+            "name": "get_gold_price"
+        },
+        {
+            "parameters": {
+                "toolDescription": "Get the current market price of cryptocurrencies like Bitcoin (BTC), Ethereum (ETH), and others in USD. Use this tool whenever the user asks about crypto prices or market trends.",
+                "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana,binancecoin&vs_currencies=usd&include_24hr_change=true",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequestTool",
+            "typeVersion": 4.3,
+            "position": [
+                608,
+                336
+            ],
+            "id": "0eb8b880-e302-4fe4-a26d-ec48b6de06ae",
+            "name": "crypto_price_tracker"
+        },
+        {
+            "parameters": {
+                "description": "Returns the current date and time. Use this tool whenever you need to know today's date or the current time to provide time-sensitive financial information.",
+                "jsCode": "return new Date().toLocaleString('en-US', { timeZone: 'Africa/Cairo' });"
+            },
+            "type": "@n8n/n8n-nodes-langchain.toolCode",
+            "typeVersion": 1.3,
+            "position": [
+                768,
+                336
+            ],
+            "id": "4a6b9637-b510-498a-ad45-d5ed89f459f3",
+            "name": "get_current_time"
+        },
+        {
+            "parameters": {
+                "descriptionType": "manual",
+                "toolDescription": "Use this tool ONLY to send urgent push notifications to the user's mobile device. This should be used for critical price alerts, hit targets, or emergency financial news that requires immediate attention. Do not use it for general conversation",
+                "userKey": "ui5n5fe3okfrzgbusxtpcgjb5ojgjh",
+                "message": "={{ $fromAI(\"question\") }}",
+                "priority": 1,
+                "additionalFields": {
+                    "title": "⚠️ Urgent Financial Alert"
+                }
+            },
+            "type": "n8n-nodes-base.pushoverTool",
+            "typeVersion": 1,
+            "position": [
+                976,
+                272
+            ],
+            "id": "7ee4a17e-ea7a-4fb1-ac7d-b104d141af67",
+            "name": "pushover_alert",
+            "credentials": {
+                "pushoverApi": {
+                    "id": "AL6A1eSLVPXzwFS9",
+                    "name": "Pushover account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "chatId": "={{ $json.message.chat.id }}",
+                "text": "={{ $fromAI(\"text\") }}",
+                "additionalFields": {
+                    "appendAttribution": false
+                }
+            },
+            "type": "n8n-nodes-base.telegramTool",
+            "typeVersion": 1.2,
+            "position": [
+                496,
+                480
+            ],
+            "id": "7a447589-36b8-47ab-a0c8-2184b13f9b86",
+            "name": "Telegram",
+            "webhookId": "751535ee-e1e6-47dc-ba5a-be4bc7b9741a",
+            "credentials": {
+                "telegramApi": {
+                    "id": "MivzrEr9hfgmeGV4",
+                    "name": "AI_Agent_money"
+                }
+            }
+        }
+    ],
+    "pinData": {},
+    "connections": {
+        "GoldCrypto_AgentBot": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenRouter Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Simple Memory": {
+            "ai_memory": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_memory",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "get_gold_price": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "crypto_price_tracker": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "get_current_time": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "pushover_alert": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Telegram": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "versionId": "d39f6922-d20c-4335-9003-b5efe169b00e",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "44ccea921b1637d384552b6fcec0af7b6301e9f71f9523dddee3344dec38d2b6"
+    },
+    "id": "zW2R8p7MB0ltjQmt",
+    "tags": []
+}
