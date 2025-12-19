@@ -1,0 +1,360 @@
+{
+  "name": "Real Estate Lead Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -336,
+        0
+      ],
+      "id": "6032c2b3-2fac-4076-9de2-71f5691a5f93",
+      "name": "Telegram Trigger",
+      "webhookId": "41bb26ba-d234-40e2-8462-8e203366e9e6",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Ifdjgqa2fxa36cQ",
+          "name": "AqariAgent_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Role: Professional Real Estate Consultant\nYou are \"Aqari AI\", a senior real estate consultant for Elshamy_Aqari Company. Your mission is to qualify leads through professional conversation and automate data entry and scheduling.\n\n📅 Critical Context (Time & Date)\nToday is Friday, December 19, 2025.\nYou MUST calculate all relative dates (like \"tomorrow\", \"next Monday\", \"in two days\") based on this date.\nExample: If the user says \"tomorrow\", the date is Dec 20, 2025.\nAlways provide dates to the calendar tool in ISO 8601 format (YYYY-MM-DDTHH:mm:ss).\n🧠 Cognitive Directives\nZero Redundancy: Never ask for information already mentioned. If a user says \"I want to buy a villa,\" immediately mark 'Buy/Rent' as \"Buy\" and 'Property Type' as \"Villa\".\nDeductive Reasoning: If a budget of $1M+ is mentioned, infer a luxury interest.\nTone: Professional, consultative, and helpful. Do not sound like a bot.\n🛠️ Workflow Steps\nGreeting: Start with a warm welcome to XYZ Real Estate.\nData Collection: Collect these 9 points one-by-one (Skip if known):\nProperty type (Apartment, Villa, etc.)\nBuy/Rent\nNew/Resale\nFirst purchase (Yes/No)\nTimeline (Immediately, 1-3 months, etc.)\nBudget (USD)\nFull Name\nEmail\nPhone Number\nSynthesis: Present a summary for the user to confirm.\nScoring & Tools (Internal):\nCalculate a score (0-100). High (≥80), Medium (60-79), Low (<60).\nACTION 1: Call sheet_save_lead for EVERY lead after confirmation.\nACTION 2: If Score ≥ 80, you MUST offer a viewing/meeting. If they agree, call google_calendar_create.\n🚫 Strict Guardrails (Important)\nNO TECHNICAL LOGS: Never mention tool names (like 'google_calendar_create' or 'sheet_save_lead'), JSON inputs, or intermediate steps to the user.\nCLEAN RESPONSES: Provide only natural, human-like responses. If a tool is used, just inform the user of the result naturally (e.g., \"Great, your meeting is scheduled!\").\nDATA INTEGRITY: The 'Score' sent to the sheet MUST be exactly: \"High\", \"Medium\", or \"Low\".\nPRIVACY: Never mention \"n8n\", \"Google Sheets\", or the \"Scoring process\".",
+          "returnIntermediateSteps": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0ee6d921-16e6-400d-80a8-f9d8a1261b00",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "mistralai/devstral-2512:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        256
+      ],
+      "id": "61a89d22-ffd1-4638-beb4-fa9c5ae5bbc2",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "wKiTDDsusOXTPQRT",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.message.chat.id }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        288
+      ],
+      "id": "ca0cbb79-b3fe-4e03-bbc1-931e103493b2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        16
+      ],
+      "id": "7ed256ae-ddd4-4aee-b4ad-98c76ae2e056",
+      "name": "Send a text message",
+      "webhookId": "a8d5a96b-1b97-4776-bfed-5c4a9dff2bda",
+      "credentials": {
+        "telegramApi": {
+          "id": "0Ifdjgqa2fxa36cQ",
+          "name": "AqariAgent_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to save the final qualified lead details to the Google Sheet after user confirmation.",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1feTRnjoRY1DmdLZblEsLTptmrom5bnAtMz63Pfy1v5I",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1feTRnjoRY1DmdLZblEsLTptmrom5bnAtMz63Pfy1v5I/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1feTRnjoRY1DmdLZblEsLTptmrom5bnAtMz63Pfy1v5I/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Property type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Property_type', ``, 'string') }}",
+            "Buy/Rent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Buy_Rent', ``, 'string') }}",
+            "New/Resale": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('New_Resale', ``, 'string') }}",
+            "First purchase": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('First_purchase', ``, 'string') }}",
+            "Timeline": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Timeline', ``, 'string') }}",
+            "Budget (USD)": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Budget__USD_', ``, 'string') }}",
+            "Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Name', ``, 'string') }}",
+            "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+            "Score": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Score', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Property type",
+              "displayName": "Property type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Buy/Rent",
+              "displayName": "Buy/Rent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "New/Resale",
+              "displayName": "New/Resale",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "First purchase",
+              "displayName": "First purchase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Budget (USD)",
+              "displayName": "Budget (USD)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        256
+      ],
+      "id": "30245604-d1c2-408d-8bec-350f6722d63a",
+      "name": "sheet_save_lead",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZKpSbG51tELuKuWg",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to create a real estate viewing appointment. \"CREATE an appointment. REQUIRES: 'start' (ISO date) and 'end' (ISO date). Today is Dec 19, 2025",
+        "calendar": {
+          "__rl": true,
+          "value": "3eb5826c1e36c0c5dbc23d1dc0246b5c77bc531142c0b9e0adf854722ee7709d@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Clients_leads"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        224
+      ],
+      "id": "1906a0bd-095e-4ac9-b1e5-6aedbb4e9948",
+      "name": "google_calendar_create",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "3yHMjsByaVjGp5pT",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sheet_save_lead": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google_calendar_create": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aaaa32db-2c90-4f19-9649-4f0195604396",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "44ccea921b1637d384552b6fcec0af7b6301e9f71f9523dddee3344dec38d2b6"
+  },
+  "id": "O4PZQGT8NamNm7kn",
+  "tags": []
+}
